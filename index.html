@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Game</title>
+        <link rel="icon" type="image/gif" href="https://pixijs.com/images/favicon.png" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+        />
+        <style>
+            html,
+            body {
+                overflow: hidden !important;
+                height: 100% !important;
+                margin: 0;
+                padding: 0;
+                position: fixed;
+                font-size: 16px;
+                touch-action: pan-x pan-y;
+                background-color: #1d2126;
+            }
+
+            input {
+                font-size: 100%;
+            }
+
+            div#stats {
+                position: fixed;
+                bottom: -10px;
+                left: -40px;
+                z-index: 500;
+                width: max(200px, 10vw, 10vh);
+                height: max(100px, 6vh, 6vw);
+                opacity: 0.8;
+                user-select: none;
+                scale: 0.6;
+            }
+        </style>
+    </head>
+
+    <body>
+        <script type="module" src="/src/main.ts"></script>
+    </body>
+</html>
