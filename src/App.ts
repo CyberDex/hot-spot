@@ -1,6 +1,5 @@
 import { Container } from '@pixi/display';
 import { type Texture } from '@pixi/core';
-import { Text } from '@pixi/text';
 import { Sprite } from '@pixi/sprite';
 import { Graphics } from '@pixi/graphics';
 import { pixi } from './plugins/Pixi';
@@ -8,8 +7,6 @@ import { pixi } from './plugins/Pixi';
 export class App extends Container {
     private texture: Texture;
     private viewPort = new Container();
-    private spritesAmount!: Text;
-    private visibleSpritesAmount!: Text;
 
     constructor() {
         super();
@@ -17,8 +14,9 @@ export class App extends Container {
         this.texture = this.generateTexture(1000, 1000);
 
         this.addViewPort();
-        this.addSpritesAmountText();
         this.addEvents();
+
+        this.resize(window.innerWidth, window.innerHeight);
     }
 
     private addViewPort() {
@@ -28,99 +26,64 @@ export class App extends Container {
         // this.viewPort.CacheAsBitmap = true;
     }
 
-    private addSpritesAmountText() {
-        this.spritesAmount = new Text('Sprites: 0', {
-            fill: 'white',
-            fontSize: 20,
-        });
-
-        this.spritesAmount.x = 300;
-
-        this.addChild(this.spritesAmount);
-
-        this.visibleSpritesAmount = new Text('Visible: 0', {
-            fill: 'white',
-            fontSize: 20,
-        });
-
-        this.visibleSpritesAmount.x = 700;
-
-        this.addChild(this.visibleSpritesAmount);
-    }
-
-    generateSprites(amount: { x: number; y: number }) {
+    generateSprites({ w, h }: { w: number; h: number }) {
         this.viewPort.removeChildren();
 
-        let visibleAmount = 0;
+        pixi.stop();
 
-        console.time('generateSprites');
+        const startTime = Date.now();
 
-        for (let i = 0; i < amount.x; i++) {
-            for (let j = 0; j < amount.y; j++) {
-                const sprite = this.addSprite(i * 6, j * 6, 5, 5);
+        const x = (w / 2) * 6 * -1;
+        const y = (h / 2) * 6 * -1;
 
-                if (this.isSpriteVisible(sprite)) {
-                    visibleAmount++;
-                }
+        for (let i = x; i < w; i++) {
+            for (let j = y; j < h; j++) {
+                this.addSprite(x + i * 6, y + j * 6, 5, 5);
             }
         }
 
-        console.timeEnd('generateSprites');
+        const endTime = Date.now();
 
-        // this.viewPort.cacheAsBitmap = true;
-
-        this.spritesAmount.text = `Sprites: ${this.viewPort.children.length}`;
-        this.visibleSpritesAmount.text = `Visible: ${visibleAmount}`;
-
-        this.resize(window.innerWidth, window.innerHeight);
-    }
-
-    private getVisibleSprites() {
-        const visibleSprites = [];
-
-        for (let i = 0; i < this.viewPort.children.length; i++) {
-            const sprite = this.viewPort.children[i];
-
-            if (this.isSpriteVisible(sprite)) {
-                visibleSprites.push(sprite);
-            }
-        }
-
-        return visibleSprites;
-    }
-
-    private isSpriteVisible(sprite: any) {
-        return (
-            sprite.x > 0 &&
-            sprite.x + sprite.width < window.innerWidth &&
-            sprite.y > 0 &&
-            sprite.y < window.innerHeight
+        console.error(
+            `${(w * h).toLocaleString()} sprites generated in ${(endTime - startTime) / 1000} sec`,
         );
+
+        (this.viewPort as any).cacheAsBitmap = true;
+
+        pixi.start();
     }
 
     private addEvents() {
         this.eventMode = 'dynamic';
 
-        this.on('wheel', ({ x, y, deltaY }) => this.zoom(x, y, deltaY));
-        this.on('pointerdown', (event) => this.selectElement(event));
-    }
+        window.addEventListener('wheel', (event) => {
+            event.preventDefault(); // Prevent the default scroll behavior
 
-    private selectElement(event: any) {
-        console.log(`selectElement`, event.x, event.y);
-    }
+            const scaleAmount = 0.1; // Adjust scale speed
+            const direction = event.deltaY < 0 ? 1 : -1;
+            const container = this.viewPort;
 
-    private zoom(x: number, y: number, zoom: number) {
-        // TODO: move the anchor point to the mouse position
+            // Scroll up or down
+            container.scale.x += scaleAmount * direction;
+            container.scale.y += scaleAmount * direction;
 
-        if (this.viewPort.scale.x <= 0) {
-            this.viewPort.scale.x = 0;
-        }
+            // Clamp the scale values to prevent excessive scaling
+            container.scale.x = Math.max(0.1, Math.min(container.scale.x, 3)); // Min 0.1, Max 3
+            container.scale.y = Math.max(0.1, Math.min(container.scale.y, 3));
+        });
 
-        console.log('zoom', x, y, zoom);
+        let dragging = false;
 
-        this.viewPort.scale.x = this.viewPort.scale.y = this.viewPort.scale.x - zoom / 1000;
+        this.viewPort.on('pointerdown', () => (dragging = true));
+        this.viewPort.on('pointerup', () => (dragging = false));
+        this.viewPort.on('pointerupoutside', () => (dragging = false));
 
-        this.visibleSpritesAmount.text = `Visible: ${this.getVisibleSprites().length}`;
+        this.viewPort.on('pointermove', (event) => {
+            if (dragging) {
+                this.viewPort.x += event.movementX;
+                this.viewPort.y += event.movementY;
+            }
+        });
     }
 
     private addSprite(x: number, y: number, w: number, h: number): Sprite {
@@ -153,9 +116,7 @@ export class App extends Container {
     }
 
     resize(width: number, height: number) {
-        this.viewPort.x = width / 2 - this.viewPort.width / 2;
-        this.viewPort.y = height / 2 - this.viewPort.height / 2;
-
-        console.log('resize', width, height);
+        this.viewPort.x = width / 2;
+        this.viewPort.y = height / 2;
     }
 }

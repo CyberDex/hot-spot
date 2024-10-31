@@ -1,4 +1,3 @@
-import ls from 'localstorage-slim';
 import { UPDATE_PRIORITY } from '@pixi/core';
 import { GUI } from 'dat.gui';
 import { type StatsJSAdapter, addStats } from 'pixi-stats';
@@ -26,25 +25,19 @@ export class DevTools extends GUI {
     }
 
     private addAmountSlider() {
-        const amount = { x: 0, y: 0 };
+        const amount = JSON.parse(localStorage.getItem('amount') || '{ "w": 100, "h": 100 }');
 
-        const savedAmount = ls.get('amount');
-
-        if (savedAmount) {
-            Object.assign(amount, savedAmount);
-        }
-
-        this.add(amount, 'x', 0, 1000).onChange(() => {
+        this.add(amount, 'w', 0, 1000, 100).onFinishChange(() => {
             app.generateSprites(amount);
-            ls.set('amount', amount);
+            localStorage.setItem('amount', JSON.stringify(amount));
         });
 
-        this.add(amount, 'y', 0, 500).onChange(() => {
+        this.add(amount, 'h', 0, 500, 100).onFinishChange(() => {
             app.generateSprites(amount);
-            ls.set('amount', amount);
+            localStorage.setItem('amount', JSON.stringify(amount));
         });
 
-        app.generateSprites(amount ?? { x: 0, y: 0 });
+        app.generateSprites(amount);
     }
 
     init() {
