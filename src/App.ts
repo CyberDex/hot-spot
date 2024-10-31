@@ -31,14 +31,18 @@ export class App extends Container {
 
         pixi.stop();
 
+        (this.viewPort as any).false = true;
+
         const startTime = Date.now();
 
-        const x = (w / 2) * 6 * -1;
-        const y = (h / 2) * 6 * -1;
+        const x = (-6 * w) / 2;
+        const y = (-6 * h) / 2;
 
-        for (let i = x; i < w; i++) {
-            for (let j = y; j < h; j++) {
-                this.addSprite(x + i * 6, y + j * 6, 5, 5);
+        for (let i = 0; i < w; i++) {
+            for (let j = 0; j < h; j++) {
+                const sprite = this.getSprite(x + i * 6, y + j * 6, 5, 5);
+
+                this.viewPort.addChild(sprite);
             }
         }
 
@@ -55,6 +59,8 @@ export class App extends Container {
 
     private addEvents() {
         this.eventMode = 'dynamic';
+        this.viewPort.eventMode = 'dynamic';
+        this.viewPort.cursor = 'grab';
 
         window.addEventListener('wheel', (event) => {
             event.preventDefault(); // Prevent the default scroll behavior
@@ -86,25 +92,17 @@ export class App extends Container {
         });
     }
 
-    private addSprite(x: number, y: number, w: number, h: number): Sprite {
-        const sprite = this.getSprite(w, h);
+    private getSprite(x: number, y: number, w = 50, h = 50): Sprite {
+        const sprite = new Sprite(this.texture);
 
         sprite.cullable = true;
 
-        sprite.x = x;
-        sprite.y = y;
-
-        this.viewPort.addChild(sprite);
-
-        return sprite;
-    }
-
-    private getSprite(w = 50, h = 50, color = 'gray'): Sprite {
-        const sprite = new Sprite(this.texture);
-
         sprite.width = w;
         sprite.height = h;
-        sprite.tint = color;
+        sprite.tint = 'white';
+
+        sprite.x = x;
+        sprite.y = y;
 
         return sprite;
     }

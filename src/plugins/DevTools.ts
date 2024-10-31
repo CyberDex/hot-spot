@@ -25,7 +25,7 @@ export class DevTools extends GUI {
     }
 
     private addAmountSlider() {
-        const amount = JSON.parse(localStorage.getItem('amount') || '{ "w": 100, "h": 100 }');
+        const amount = JSON.parse(localStorage.getItem('amount') || '{ "w": 10, "h": 10 }');
 
         this.add(amount, 'w', 0, 1000, 100).onFinishChange(() => {
             app.generateSprites(amount);
