@@ -1,5 +1,6 @@
+import ls from 'localstorage-slim';
 import { Container } from '@pixi/display';
-import { type Texture } from '@pixi/core';
+import { Rectangle, type Texture } from '@pixi/core';
 import { Sprite } from '@pixi/sprite';
 import { Graphics } from '@pixi/graphics';
 import { pixi } from './plugins/Pixi';
@@ -22,8 +23,15 @@ export class App extends Container {
     private addViewPort() {
         this.addChild(this.viewPort);
 
-        // this.viewPort.cullableChildren = true;
-        // this.viewPort.CacheAsBitmap = true;
+        const storedData: any = ls.get('viewPort');
+
+        if (storedData) {
+            this.viewPort.position.set(storedData.pos);
+            this.viewPort.scale.set(storedData.scale);
+        }
+
+        this.viewPort.sortableChildren = false;
+        this.viewPort.cullable = true;
     }
 
     generateSprites({ w, h }: { w: number; h: number }) {
@@ -38,18 +46,30 @@ export class App extends Container {
         const x = (-6 * w) / 2;
         const y = (-6 * h) / 2;
 
+        const cullArea = new Rectangle(0, 0, window.innerWidth, window.innerHeight);
+
         for (let i = 0; i < w; i++) {
             for (let j = 0; j < h; j++) {
                 const sprite = this.getSprite(x + i * 6, y + j * 6, 5, 5);
 
+                sprite.cullArea = cullArea;
+
+                if (!i && !j) {
+                    (window as any).sprite = sprite;
+                }
+
+                sprite.tint = this.getRandomColor();
                 this.viewPort.addChild(sprite);
             }
         }
 
         const endTime = Date.now();
 
-        console.error(
-            `${(w * h).toLocaleString()} sprites generated in ${(endTime - startTime) / 1000} sec`,
+        console.log(
+            `%c ${(w * h).toLocaleString()} sprites generated in ${
+                (endTime - startTime) / 1000
+            } sec `,
+            'font-weight: bold; color: black; background-color: white; font-size: 16px;',
         );
 
         (this.viewPort as any).cacheAsBitmap = true;
@@ -58,13 +78,7 @@ export class App extends Container {
     }
 
     private addEvents() {
-        this.eventMode = 'dynamic';
-        this.viewPort.eventMode = 'dynamic';
-        this.viewPort.cursor = 'grab';
-
         window.addEventListener('wheel', (event) => {
-            event.preventDefault(); // Prevent the default scroll behavior
-
             const scaleAmount = 0.1; // Adjust scale speed
             const direction = event.deltaY < 0 ? 1 : -1;
             const container = this.viewPort;
@@ -80,16 +94,36 @@ export class App extends Container {
 
         let dragging = false;
 
-        this.viewPort.on('pointerdown', () => (dragging = true));
-        this.viewPort.on('pointerup', () => (dragging = false));
-        this.viewPort.on('pointerupoutside', () => (dragging = false));
-
-        this.viewPort.on('pointermove', (event) => {
-            if (dragging) {
-                this.viewPort.x += event.movementX;
-                this.viewPort.y += event.movementY;
-            }
+        window.addEventListener('pointerdown', (event) => event.button === 0 && (dragging = true), {
+            passive: true,
         });
+        window.addEventListener('pointerup', () => (dragging = false), {
+            passive: true,
+        });
+        window.addEventListener('pointerupoutside', () => (dragging = false), {
+            passive: true,
+        });
+
+        window.addEventListener(
+            'pointermove',
+            (event) => {
+                if (dragging) {
+                    this.viewPort.x += event.movementX;
+                    this.viewPort.y += event.movementY;
+
+                    ls.set('viewPort', { pos: this.viewPort.position, scale: this.viewPort.scale });
+                }
+            },
+            {
+                passive: true,
+            },
+        );
+    }
+
+    private getRandomColor(): string {
+        const randomColor = Math.floor(Math.random() * 16777215).toString(16);
+
+        return `#${randomColor.padStart(6, '0')}`; // Ensure it's always 6 digits
     }
 
     private getSprite(x: number, y: number, w = 50, h = 50): Sprite {

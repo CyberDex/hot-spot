@@ -17,6 +17,8 @@ export class DevTools extends GUI {
 
         this.addStats();
         this.addAmountSlider();
+
+        (globalThis as any).__PIXI_APP__ = app;
     }
 
     private addStats() {
