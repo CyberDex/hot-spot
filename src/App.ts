@@ -1,26 +1,50 @@
 import ls from 'localstorage-slim';
 import { Container } from '@pixi/display';
-import { Rectangle, type Texture } from '@pixi/core';
-import { Sprite } from '@pixi/sprite';
-import { Graphics } from '@pixi/graphics';
+import type { Sprite } from '@pixi/sprite';
 import { pixi } from './plugins/Pixi';
+import { addSpritesToViewPort, generateSprites } from 'utils/viewport';
+import type { SpritesGeneratorConfig } from 'utils/viewport';
+import { runAndMeasure } from 'utils/measure';
+import { config } from './conf/config';
 
 export class App extends Container {
-    private texture: Texture;
-    private viewPort = new Container();
+    private viewPort!: Container;
+    private isDragging = false;
 
     constructor() {
         super();
 
-        this.texture = this.generateTexture(1000, 1000);
-
-        this.addViewPort();
         this.addEvents();
 
         this.resize(window.innerWidth, window.innerHeight);
     }
 
+    generateSprites(config: SpritesGeneratorConfig) {
+        this.addViewPort();
+
+        (this.viewPort as any).cacheAsBitmap = false;
+
+        this.viewPort.removeChildren();
+
+        pixi.stop();
+
+        const sprites: Sprite[] = runAndMeasure(generateSprites, config);
+
+        runAndMeasure(addSpritesToViewPort, {
+            sprites,
+            viewPort: this.viewPort,
+        });
+
+        (this.viewPort as any).cacheAsBitmap = true;
+
+        pixi.start();
+    }
+
     private addViewPort() {
+        if (this.viewPort) return;
+
+        this.viewPort = new Container();
+
         this.addChild(this.viewPort);
 
         const storedData: any = ls.get('viewPort');
@@ -34,120 +58,66 @@ export class App extends Container {
         this.viewPort.cullable = true;
     }
 
-    generateSprites({ w, h }: { w: number; h: number }) {
-        this.viewPort.removeChildren();
-
-        pixi.stop();
-
-        (this.viewPort as any).false = true;
-
-        const startTime = Date.now();
-
-        const x = (-6 * w) / 2;
-        const y = (-6 * h) / 2;
-
-        const cullArea = new Rectangle(0, 0, window.innerWidth, window.innerHeight);
-
-        for (let i = 0; i < w; i++) {
-            for (let j = 0; j < h; j++) {
-                const sprite = this.getSprite(x + i * 6, y + j * 6, 5, 5);
-
-                sprite.cullArea = cullArea;
-
-                if (!i && !j) {
-                    (window as any).sprite = sprite;
-                }
-
-                sprite.tint = this.getRandomColor();
-                this.viewPort.addChild(sprite);
-            }
-        }
-
-        const endTime = Date.now();
-
-        console.log(
-            `%c ${(w * h).toLocaleString()} sprites generated in ${
-                (endTime - startTime) / 1000
-            } sec `,
-            'font-weight: bold; color: black; background-color: white; font-size: 16px;',
-        );
-
-        (this.viewPort as any).cacheAsBitmap = true;
-
-        pixi.start();
-    }
-
     private addEvents() {
-        window.addEventListener('wheel', (event) => {
-            const scaleAmount = 0.1; // Adjust scale speed
-            const direction = event.deltaY < 0 ? 1 : -1;
-            const container = this.viewPort;
+        const options: AddEventListenerOptions = {
+            capture: true,
+        };
 
-            // Scroll up or down
-            container.scale.x += scaleAmount * direction;
-            container.scale.y += scaleAmount * direction;
-
-            // Clamp the scale values to prevent excessive scaling
-            container.scale.x = Math.max(0.1, Math.min(container.scale.x, 3)); // Min 0.1, Max 3
-            container.scale.y = Math.max(0.1, Math.min(container.scale.y, 3));
-        });
-
-        let dragging = false;
-
-        window.addEventListener('pointerdown', (event) => event.button === 0 && (dragging = true), {
-            passive: true,
-        });
-        window.addEventListener('pointerup', () => (dragging = false), {
-            passive: true,
-        });
-        window.addEventListener('pointerupoutside', () => (dragging = false), {
-            passive: true,
-        });
-
-        window.addEventListener(
-            'pointermove',
-            (event) => {
-                if (dragging) {
-                    this.viewPort.x += event.movementX;
-                    this.viewPort.y += event.movementY;
-
-                    ls.set('viewPort', { pos: this.viewPort.position, scale: this.viewPort.scale });
-                }
-            },
-            {
-                passive: true,
-            },
-        );
+        pixi.view.addEventListener('wheel', (event) => this.onZoom(event), options);
+        pixi.view.addEventListener('pointerdown', (event) => this.onClick(event), options);
+        pixi.view.addEventListener('pointerup', () => this.onDragEnd(), options);
+        pixi.view.addEventListener('pointerupoutside', () => this.onDragEnd(), options);
+        pixi.view.addEventListener('pointermove', (event) => this.onDrag(event), options);
     }
 
-    private getRandomColor(): string {
-        const randomColor = Math.floor(Math.random() * 16777215).toString(16);
+    private onZoom(event: WheelEvent) {
+        const scaleAmount = 0.1; // Adjust scale speed
+        const direction = event.deltaY < 0 ? 1 : -1;
+        const container = this.viewPort;
 
-        return `#${randomColor.padStart(6, '0')}`; // Ensure it's always 6 digits
+        // Scroll up or down
+        container.scale.x += scaleAmount * direction;
+        container.scale.y += scaleAmount * direction;
+
+        // Clamp the scale values to prevent excessive scaling
+        container.scale.x = Math.max(config.minScale, Math.min(container.scale.x, 3)); // Min 0.1, Max 3
+        container.scale.y = Math.max(0.1, Math.min(container.scale.y, 3));
+
+        console.log(`onZoom`, {
+            scaleAmount,
+            direction,
+            scale: container.scale.x,
+        });
     }
 
-    private getSprite(x: number, y: number, w = 50, h = 50): Sprite {
-        const sprite = new Sprite(this.texture);
-
-        sprite.cullable = true;
-
-        sprite.width = w;
-        sprite.height = h;
-        sprite.tint = 'white';
-
-        sprite.x = x;
-        sprite.y = y;
-
-        return sprite;
+    private onClick(event: PointerEvent) {
+        if (event.button === 0) {
+            this.isDragging = true;
+        }
     }
 
-    private generateTexture(w = 50, h = 50): Texture {
-        const templateShape = new Graphics().beginFill(0xffffff).drawRect(50, 50, w, h);
+    private onDrag(event: PointerEvent) {
+        if (!this.isDragging) return;
 
-        return pixi.renderer.generateTexture(templateShape);
+        this.viewPort.x += event.movementX;
+        this.viewPort.y += event.movementY;
+
+        console.log(`onDrag`);
+    }
+
+    private onDragEnd() {
+        if (!this.isDragging) return;
+
+        this.isDragging = false;
+
+        console.log(`onDragEnd`, { pos: this.viewPort.position, scale: this.viewPort.scale });
+
+        ls.set('viewPort', { pos: this.viewPort.position, scale: this.viewPort.scale });
     }
 
     resize(width: number, height: number) {
+        this.addViewPort();
+
         this.viewPort.x = width / 2;
         this.viewPort.y = height / 2;
     }

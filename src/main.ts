@@ -7,15 +7,12 @@ export const app = new App();
 
 class Application {
     static init() {
-        this.addSubscriptions();
+        pixi.stage.addChild(app);
+
         new DevTools().init();
 
-        pixi.stage.addChild(app);
-    }
-
-    static addSubscriptions() {
-        window.addEventListener('resize', this.resize);
         this.resize();
+        window.addEventListener('resize', this.resize);
     }
 
     static resize() {

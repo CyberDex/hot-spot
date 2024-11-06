@@ -6,6 +6,7 @@ export default defineConfig(() => ({
         alias: {
             plugins: '/src/plugins',
             utils: '/src/utils',
+            conf: '/src/conf',
         },
     },
 }));
