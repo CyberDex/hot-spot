@@ -6,6 +6,7 @@
         "start": "run-s dev:tsc dev:vite",
         "dev:tsc": "tsc",
         "dev:vite": "vite --open",
+        "build": "tsc -b && vite build",
         "lint": "eslint src/ --max-warnings 0"
     },
     "dependencies": {
