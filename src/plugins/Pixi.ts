@@ -1,6 +1,8 @@
-import { Application } from '@pixi/app';
 import '@pixi/events';
 import '@pixi/mixin-get-global-position';
+import { Application } from '@pixi/app';
+import { UPDATE_PRIORITY } from '@pixi/core';
+import { addStats } from 'pixi-stats';
 
 export class Pixi extends Application<HTMLCanvasElement> {
     public static resolution: number;
@@ -17,6 +19,17 @@ export class Pixi extends Application<HTMLCanvasElement> {
 
         this.onResize();
         window.addEventListener('resize', this.onResize);
+
+        if (BUILD_TYPE === 'development') {
+            (globalThis as any).__PIXI_APP__ = this;
+            this.addStats();
+        }
+    }
+
+    private addStats() {
+        const pixiStats = addStats(document, this as any);
+
+        this.ticker.add(pixiStats.update, pixiStats, UPDATE_PRIORITY.UTILITY);
     }
 
     private onResize() {

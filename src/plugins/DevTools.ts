@@ -1,16 +1,8 @@
-import ls from 'localstorage-slim';
-import { UPDATE_PRIORITY } from '@pixi/core';
 import { GUI } from 'dat.gui';
-import { type StatsJSAdapter, addStats } from 'pixi-stats';
-import { pixi } from './Pixi';
 import { app } from '../main';
-import { config, defaultSetup } from 'conf/config';
-import { type SpritesGeneratorConfig } from 'utils/viewport';
+import { config } from 'conf/config';
 
 export class DevTools extends GUI {
-    private pixiStats!: StatsJSAdapter | null;
-    private setup: SpritesGeneratorConfig = defaultSetup;
-
     constructor() {
         super({
             name: 'Dev Tools',
@@ -19,28 +11,19 @@ export class DevTools extends GUI {
             autoPlace: false,
         });
 
-        (globalThis as any).__PIXI_APP__ = app;
-    }
-
-    init() {
         document.body.appendChild(this.domElement);
 
         this.applyStyles();
-
-        this.addStats();
-        this.addControls();
+        this.addStateControls();
     }
 
-    private addStats() {
-        this.pixiStats = addStats(document, pixi as any);
-        pixi.ticker.add(this.pixiStats.update, this.pixiStats, UPDATE_PRIORITY.UTILITY);
+    private applyStyles() {
+        this.domElement.style.position = 'fixed';
+        this.domElement.style.top = '0px';
     }
 
-    private addControls() {
-        if (localStorage.getItem('setup')) {
-            this.setup = ls.get('setup') as SpritesGeneratorConfig;
-        }
-
+    // TODO: abstract this
+    private addStateControls() {
         const {
             minAmountHor,
             maxAmountHor,
@@ -51,40 +34,22 @@ export class DevTools extends GUI {
             maxDist,
         } = config;
 
-        this.add(this.setup, 'width', minAmountHor, maxAmountHor, amountStep).onFinishChange(() => {
-            this.generateSprites();
+        const appState = { ...app.state };
+
+        this.add(appState, 'width', minAmountHor, maxAmountHor, amountStep).onFinishChange(() => {
+            app.state = appState;
         });
 
-        this.add(this.setup, 'height', minAmountVer, maxAmountVer, amountStep).onFinishChange(
-            () => {
-                this.generateSprites();
-            },
-        );
-
-        this.add(this.setup, 'size', 1, maxSize).onFinishChange(() => {
-            this.generateSprites();
+        this.add(appState, 'height', minAmountVer, maxAmountVer, amountStep).onFinishChange(() => {
+            app.state = appState;
         });
 
-        this.add(this.setup, 'dist', 0, maxDist).onFinishChange(() => {
-            this.generateSprites();
+        this.add(appState, 'size', 1, maxSize).onFinishChange(() => {
+            app.state = appState;
         });
 
-        this.generateSprites();
-    }
-
-    private generateSprites() {
-        ls.set('setup', this.setup);
-
-        app.generateSprites({
-            width: this.setup.width,
-            height: this.setup.height,
-            size: this.setup.size,
-            dist: this.setup.dist,
+        this.add(appState, 'dist', 0, maxDist).onFinishChange(() => {
+            app.state = appState;
         });
-    }
-
-    private applyStyles() {
-        this.domElement.style.position = 'fixed';
-        this.domElement.style.top = '0px';
     }
 }

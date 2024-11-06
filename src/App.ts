@@ -3,39 +3,22 @@ import { Container } from '@pixi/display';
 import type { Sprite } from '@pixi/sprite';
 import { pixi } from './plugins/Pixi';
 import { addSpritesToViewPort, generateSprites } from 'utils/viewport';
-import type { SpritesGeneratorConfig } from 'utils/viewport';
 import { runAndMeasure } from 'utils/measure';
-import { config } from './conf/config';
+import { config, defaultState } from './conf/config';
+import deepcopy from 'deepcopy';
 
 export class App extends Container {
     private viewPort!: Container;
     private isDragging = false;
+    #state!: State;
 
     constructor() {
         super();
 
+        this.addViewPort();
         this.addEvents();
-        this.addViewPort();
-
+        this.restoreState();
         pixi.stage.addChild(this);
-    }
-
-    generateSprites(config: SpritesGeneratorConfig) {
-        this.addViewPort();
-
-        this.unfreezeViewport();
-        this.viewPort.removeChildren();
-
-        const sprites: Sprite[] = runAndMeasure(generateSprites, config);
-
-        pixi.stop();
-        runAndMeasure(addSpritesToViewPort, {
-            sprites,
-            viewPort: this.viewPort,
-        });
-        pixi.start();
-
-        this.freezeViewport();
     }
 
     private addViewPort() {
@@ -46,16 +29,7 @@ export class App extends Container {
         this.viewPort.sortableChildren = false;
         this.viewPort.cullable = true;
 
-        this.restoreState();
         this.addChild(this.viewPort);
-    }
-
-    private freezeViewport() {
-        (this.viewPort as any).cacheAsBitmap = false;
-    }
-
-    private unfreezeViewport() {
-        (this.viewPort as any).cacheAsBitmap = true;
     }
 
     private addEvents() {
@@ -78,14 +52,18 @@ export class App extends Container {
         this.viewPort.scale.x += scaleAmount * direction;
         this.viewPort.scale.y += scaleAmount * direction;
 
-        // Clamp the scale values to prevent excessive scaling
-        this.viewPort.scale.x = Math.max(
-            config.minScale,
-            Math.min(this.viewPort.scale.x, config.maxScale),
-        ); // Min 0.1, Max 3
-        this.viewPort.scale.y = Math.max(0.1, Math.min(this.viewPort.scale.y, config.maxScale));
+        const scale = Math.max(config.minScale, Math.min(this.viewPort.scale.x, config.maxScale));
 
-        this.saveState();
+        // Clamp the scale values to prevent excessive scaling
+        this.viewPort.scale.x = scale;
+        this.viewPort.scale.y = scale;
+
+        this.state = {
+            scale: {
+                x: scale,
+                y: scale,
+            },
+        };
     }
 
     private onClick(event: PointerEvent) {
@@ -106,40 +84,131 @@ export class App extends Container {
 
         this.isDragging = false;
 
-        this.saveState();
+        this.state = {
+            pos: {
+                x: this.viewPort.x,
+                y: this.viewPort.y,
+            },
+        };
     }
 
     private saveState() {
-        ls.set('viewPort', {
-            pos: {
-                x: Math.round(this.viewPort.x * 100) / 100,
-                y: Math.round(this.viewPort.y * 100) / 100,
-            },
-            scale: {
-                x: Math.round(this.viewPort.scale.x * 100) / 100,
-                y: Math.round(this.viewPort.scale.y * 100) / 100,
-            },
-        });
+        ls.set(`${APP_NAME}-state`, this.state);
     }
 
     private restoreState() {
-        const storedData: any = ls.get('viewPort');
+        const state = ls.get(`${APP_NAME}-state`) as State;
 
-        if (storedData) {
-            this.viewPort.x = storedData.pos.x;
-            this.viewPort.y = storedData.pos.y;
-
-            this.viewPort.scale.x = storedData.scale.x;
-            this.viewPort.scale.y = storedData.scale.y;
+        if (state) {
+            this.state = state;
         } else {
-            this.setDefaultPosition();
+            this.resetState();
         }
     }
 
-    private setDefaultPosition() {
+    set state(change: Partial<State>) {
+        if (!change) return;
+
+        const stateData: any = this.#state && deepcopy(this.#state);
+        const prevValues: any = {};
+        const changes: any = {};
+
+        for (const valueKey in change) {
+            const changeKey = valueKey as StateField;
+
+            const prevVal = stateData && stateData[changeKey];
+            const newVal = change[changeKey];
+
+            if (newVal !== prevVal) {
+                changes[changeKey] = newVal;
+                prevValues[changeKey] = prevVal;
+            }
+        }
+
+        const changesAmount = Object.keys(changes).length;
+
+        if (changesAmount === 0) return;
+
+        this.#state = {
+            ...this.#state,
+            ...changes,
+        };
+
+        if (changes && (changes.width || changes.height || changes.size || changes.dist)) {
+            this.generateSprites();
+        }
+
+        this.resize();
+        this.saveState();
+    }
+
+    get state(): State {
+        return this.#state;
+    }
+
+    private resize() {
+        this.viewPort.x = this.state.pos.x;
+        this.viewPort.y = this.state.pos.y;
+
+        this.viewPort.scale.x = this.state.scale.x;
+        this.viewPort.scale.y = this.state.scale.y;
+    }
+
+    private generateSprites() {
+        this.addViewPort();
+
+        this.unfreezeViewport();
+        this.viewPort.removeChildren();
+
+        const sprites: Sprite[] = runAndMeasure(generateSprites, this.state);
+
+        pixi.stop();
+
+        runAndMeasure(addSpritesToViewPort, {
+            sprites,
+            viewPort: this.viewPort,
+        });
+
+        pixi.start();
+
+        this.freezeViewport();
+    }
+
+    private freezeViewport() {
+        (this.viewPort as any).cacheAsBitmap = false;
+    }
+
+    private unfreezeViewport() {
+        (this.viewPort as any).cacheAsBitmap = true;
+    }
+
+    resetState() {
+        this.state = defaultState;
+
         const { width, height } = pixi.getAppSize();
 
-        this.viewPort.x = width / 2;
-        this.viewPort.y = height / 2;
+        this.state = {
+            ...defaultState,
+            pos: {
+                x: width / 2,
+                y: height / 2,
+            },
+        };
     }
 }
+
+export type State = {
+    width: number;
+    height: number;
+    size: number;
+    dist: number;
+    pos: {
+        x: number;
+        y: number;
+    };
+    scale: {
+        x: number;
+        y: number;
+    };
+};
+export type StateField = keyof State;

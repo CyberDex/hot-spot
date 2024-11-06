@@ -1,5 +1,6 @@
 import { Texture } from '@pixi/core';
 import { Sprite } from '@pixi/sprite';
+import { type State } from 'App';
 
 export function addSpritesToViewPort(params: { sprites: Sprite[]; viewPort: any }) {
     for (const sprite of params.sprites) {
@@ -7,7 +8,7 @@ export function addSpritesToViewPort(params: { sprites: Sprite[]; viewPort: any 
     }
 }
 
-export function generateSprites({ width, height, size, dist }: SpritesGeneratorConfig): Sprite[] {
+export function generateSprites({ width, height, size, dist }: State): Sprite[] {
     const sizeWithDist = size + dist;
 
     const x = (-sizeWithDist * width) / 2;
@@ -45,10 +46,3 @@ function getRandomColor(): string {
 
     return `#${randomColor.padStart(6, '0')}`; // Ensure it's always 6 digits
 }
-
-export type SpritesGeneratorConfig = {
-    width: number;
-    height: number;
-    size: number;
-    dist: number;
-};
