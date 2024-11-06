@@ -25,7 +25,6 @@ class Application {
 
         // Update renderer  and navigation screens dimensions
         pixi.renderer.resize(width, height);
-        app.resize(width, height);
     }
 }
 

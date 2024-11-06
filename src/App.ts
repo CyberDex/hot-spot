@@ -6,6 +6,7 @@ import { addSpritesToViewPort, generateSprites } from 'utils/viewport';
 import type { SpritesGeneratorConfig } from 'utils/viewport';
 import { runAndMeasure } from 'utils/measure';
 import { config } from './conf/config';
+import { getAppSize } from 'utils/getAppSize';
 
 export class App extends Container {
     private viewPort!: Container;
@@ -15,29 +16,25 @@ export class App extends Container {
         super();
 
         this.addEvents();
-
-        this.resize(window.innerWidth, window.innerHeight);
+        this.addViewPort();
     }
 
     generateSprites(config: SpritesGeneratorConfig) {
         this.addViewPort();
 
-        (this.viewPort as any).cacheAsBitmap = false;
-
+        this.unfreezeViewport();
         this.viewPort.removeChildren();
-
-        pixi.stop();
 
         const sprites: Sprite[] = runAndMeasure(generateSprites, config);
 
+        pixi.stop();
         runAndMeasure(addSpritesToViewPort, {
             sprites,
             viewPort: this.viewPort,
         });
-
-        (this.viewPort as any).cacheAsBitmap = true;
-
         pixi.start();
+
+        this.freezeViewport();
     }
 
     private addViewPort() {
@@ -45,17 +42,19 @@ export class App extends Container {
 
         this.viewPort = new Container();
 
-        this.addChild(this.viewPort);
-
-        const storedData: any = ls.get('viewPort');
-
-        if (storedData) {
-            this.viewPort.position.set(storedData.pos);
-            this.viewPort.scale.set(storedData.scale);
-        }
-
         this.viewPort.sortableChildren = false;
         this.viewPort.cullable = true;
+
+        this.restoreState();
+        this.addChild(this.viewPort);
+    }
+
+    private freezeViewport() {
+        (this.viewPort as any).cacheAsBitmap = false;
+    }
+
+    private unfreezeViewport() {
+        (this.viewPort as any).cacheAsBitmap = true;
     }
 
     private addEvents() {
@@ -71,23 +70,21 @@ export class App extends Container {
     }
 
     private onZoom(event: WheelEvent) {
-        const scaleAmount = 0.1; // Adjust scale speed
+        const scaleAmount = config.scaleStep; // Adjust scale speed
         const direction = event.deltaY < 0 ? 1 : -1;
-        const container = this.viewPort;
 
         // Scroll up or down
-        container.scale.x += scaleAmount * direction;
-        container.scale.y += scaleAmount * direction;
+        this.viewPort.scale.x += scaleAmount * direction;
+        this.viewPort.scale.y += scaleAmount * direction;
 
         // Clamp the scale values to prevent excessive scaling
-        container.scale.x = Math.max(config.minScale, Math.min(container.scale.x, 3)); // Min 0.1, Max 3
-        container.scale.y = Math.max(0.1, Math.min(container.scale.y, 3));
+        this.viewPort.scale.x = Math.max(
+            config.minScale,
+            Math.min(this.viewPort.scale.x, config.maxScale),
+        ); // Min 0.1, Max 3
+        this.viewPort.scale.y = Math.max(0.1, Math.min(this.viewPort.scale.y, config.maxScale));
 
-        console.log(`onZoom`, {
-            scaleAmount,
-            direction,
-            scale: container.scale.x,
-        });
+        this.saveState();
     }
 
     private onClick(event: PointerEvent) {
@@ -101,8 +98,6 @@ export class App extends Container {
 
         this.viewPort.x += event.movementX;
         this.viewPort.y += event.movementY;
-
-        console.log(`onDrag`);
     }
 
     private onDragEnd() {
@@ -110,13 +105,38 @@ export class App extends Container {
 
         this.isDragging = false;
 
-        console.log(`onDragEnd`, { pos: this.viewPort.position, scale: this.viewPort.scale });
-
-        ls.set('viewPort', { pos: this.viewPort.position, scale: this.viewPort.scale });
+        this.saveState();
     }
 
-    resize(width: number, height: number) {
-        this.addViewPort();
+    private saveState() {
+        ls.set('viewPort', {
+            pos: {
+                x: Math.round(this.viewPort.x * 100) / 100,
+                y: Math.round(this.viewPort.y * 100) / 100,
+            },
+            scale: {
+                x: Math.round(this.viewPort.scale.x * 100) / 100,
+                y: Math.round(this.viewPort.scale.y * 100) / 100,
+            },
+        });
+    }
+
+    private restoreState() {
+        const storedData: any = ls.get('viewPort');
+
+        if (storedData) {
+            this.viewPort.x = storedData.pos.x;
+            this.viewPort.y = storedData.pos.y;
+
+            this.viewPort.scale.x = storedData.scale.x;
+            this.viewPort.scale.y = storedData.scale.y;
+        } else {
+            this.setDefaultPosition();
+        }
+    }
+
+    private setDefaultPosition() {
+        const { width, height } = getAppSize();
 
         this.viewPort.x = width / 2;
         this.viewPort.y = height / 2;

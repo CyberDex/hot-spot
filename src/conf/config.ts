@@ -20,4 +20,5 @@ export const config = {
     amountStep: 100,
     maxSize: 100,
     maxDist: 100,
+    scaleStep: 0.1,
 };
