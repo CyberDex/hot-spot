@@ -11,6 +11,11 @@ export default defineConfig(({ command, mode }) => {
 
     return {
         base: isDev ? '/' : '/hot-spot',
+        define: {
+            APP_NAME: JSON.stringify(appData.name),
+            APP_VERSION: JSON.stringify(appData.version),
+            BUILD_TYPE: JSON.stringify(mode),
+        },
         resolve: {
             alias: {
                 plugins: '/src/plugins',

@@ -6,7 +6,6 @@ import { addSpritesToViewPort, generateSprites } from 'utils/viewport';
 import type { SpritesGeneratorConfig } from 'utils/viewport';
 import { runAndMeasure } from 'utils/measure';
 import { config } from './conf/config';
-import { getAppSize } from 'utils/getAppSize';
 
 export class App extends Container {
     private viewPort!: Container;
@@ -17,6 +16,8 @@ export class App extends Container {
 
         this.addEvents();
         this.addViewPort();
+
+        pixi.stage.addChild(this);
     }
 
     generateSprites(config: SpritesGeneratorConfig) {
@@ -136,7 +137,7 @@ export class App extends Container {
     }
 
     private setDefaultPosition() {
-        const { width, height } = getAppSize();
+        const { width, height } = pixi.getAppSize();
 
         this.viewPort.x = width / 2;
         this.viewPort.y = height / 2;
