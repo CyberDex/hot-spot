@@ -1,6 +1,6 @@
 import { Texture } from '@pixi/core';
 import { Sprite } from '@pixi/sprite';
-import { type State } from 'App';
+import { type StateData } from 'plugins/State';
 
 export function addSpritesToViewPort(params: { sprites: Sprite[]; viewPort: any }) {
     for (const sprite of params.sprites) {
@@ -8,7 +8,7 @@ export function addSpritesToViewPort(params: { sprites: Sprite[]; viewPort: any 
     }
 }
 
-export function generateSprites({ width, height, size, dist }: State): Sprite[] {
+export function generateSprites({ width, height, size, dist }: StateData): Sprite[] {
     const sizeWithDist = size + dist;
 
     const x = (-sizeWithDist * width) / 2;

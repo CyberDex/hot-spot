@@ -1,24 +1,55 @@
-import ls from 'localstorage-slim';
 import { Container } from '@pixi/display';
 import type { Sprite } from '@pixi/sprite';
-import { pixi } from './plugins/Pixi';
+import { getAppSize, pixi } from 'plugins/Pixi';
 import { addSpritesToViewPort, generateSprites } from 'utils/viewport';
 import { runAndMeasure } from 'utils/measure';
-import { config, defaultState } from './conf/config';
-import deepcopy from 'deepcopy';
+import { config } from './conf/config';
+import { Point, state } from 'plugins/State';
 
 export class App extends Container {
     private viewPort!: Container;
     private isDragging = false;
-    #state!: State;
 
     constructor() {
         super();
 
         this.addViewPort();
         this.addEvents();
-        this.restoreState();
         pixi.stage.addChild(this);
+
+        state.onChange(({ width, height, size, dist }) => {
+            console.log('state changed', {
+                width,
+                height,
+                size,
+                dist,
+            });
+
+            this.generateSprites();
+        });
+
+        state.onChange(({ pos, scale }) => {
+            if (pos) {
+                this.viewPort.x = pos.x;
+                this.viewPort.y = pos.y;
+            }
+
+            if (scale) {
+                this.viewPort.scale.set(scale);
+            }
+
+            console.log('state changed', {
+                pos,
+                scale,
+                viewport: {
+                    x: this.viewPort.x,
+                    y: this.viewPort.y,
+                    scale: this.viewPort.scale.x,
+                },
+            });
+        });
+
+        this.resetPosition();
     }
 
     private addViewPort() {
@@ -58,12 +89,7 @@ export class App extends Container {
         this.viewPort.scale.x = scale;
         this.viewPort.scale.y = scale;
 
-        this.state = {
-            scale: {
-                x: scale,
-                y: scale,
-            },
-        };
+        state.set({ scale });
     }
 
     private onClick(event: PointerEvent) {
@@ -84,74 +110,12 @@ export class App extends Container {
 
         this.isDragging = false;
 
-        this.state = {
+        state.set({
             pos: {
                 x: this.viewPort.x,
                 y: this.viewPort.y,
             },
-        };
-    }
-
-    private saveState() {
-        ls.set(`${APP_NAME}-state`, this.state);
-    }
-
-    private restoreState() {
-        const state = ls.get(`${APP_NAME}-state`) as State;
-
-        if (state) {
-            this.state = state;
-        } else {
-            this.resetState();
-        }
-    }
-
-    set state(change: Partial<State>) {
-        if (!change) return;
-
-        const stateData: any = this.#state && deepcopy(this.#state);
-        const prevValues: any = {};
-        const changes: any = {};
-
-        for (const valueKey in change) {
-            const changeKey = valueKey as StateField;
-
-            const prevVal = stateData && stateData[changeKey];
-            const newVal = change[changeKey];
-
-            if (newVal !== prevVal) {
-                changes[changeKey] = newVal;
-                prevValues[changeKey] = prevVal;
-            }
-        }
-
-        const changesAmount = Object.keys(changes).length;
-
-        if (changesAmount === 0) return;
-
-        this.#state = {
-            ...this.#state,
-            ...changes,
-        };
-
-        if (changes && (changes.width || changes.height || changes.size || changes.dist)) {
-            this.generateSprites();
-        }
-
-        this.resize();
-        this.saveState();
-    }
-
-    get state(): State {
-        return this.#state;
-    }
-
-    private resize() {
-        this.viewPort.x = this.state.pos.x;
-        this.viewPort.y = this.state.pos.y;
-
-        this.viewPort.scale.x = this.state.scale.x;
-        this.viewPort.scale.y = this.state.scale.y;
+        });
     }
 
     private generateSprites() {
@@ -160,7 +124,7 @@ export class App extends Container {
         this.unfreezeViewport();
         this.viewPort.removeChildren();
 
-        const sprites: Sprite[] = runAndMeasure(generateSprites, this.state);
+        const sprites: Sprite[] = runAndMeasure(generateSprites, state.data);
 
         pixi.stop();
 
@@ -182,33 +146,16 @@ export class App extends Container {
         (this.viewPort as any).cacheAsBitmap = true;
     }
 
-    resetState() {
-        this.state = defaultState;
+    private resetPosition() {
+        // TODO: add reset position logic
 
-        const { width, height } = pixi.getAppSize();
+        const { width, height } = getAppSize();
 
-        this.state = {
-            ...defaultState,
+        state.set({
             pos: {
                 x: width / 2,
                 y: height / 2,
             },
-        };
+        });
     }
 }
-
-export type State = {
-    width: number;
-    height: number;
-    size: number;
-    dist: number;
-    pos: {
-        x: number;
-        y: number;
-    };
-    scale: {
-        x: number;
-        y: number;
-    };
-};
-export type StateField = keyof State;
