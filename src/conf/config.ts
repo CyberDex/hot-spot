@@ -1,8 +1,8 @@
 import { type State } from 'App';
 
 export const defaultState: State = {
-    width: 10,
-    height: 10,
+    width: 100,
+    height: 100,
     size: 5,
     dist: 1,
     pos: {
@@ -24,7 +24,7 @@ export const config = {
     maxAmountHor: 1000,
     minAmountVer: 10,
     maxAmountVer: 500,
-    amountStep: 100,
+    amountStep: 10,
     maxSize: 100,
     maxDist: 100,
     scaleStep: 0.1,

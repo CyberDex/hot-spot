@@ -35,6 +35,7 @@ export class DevTools extends GUI {
         } = config;
 
         const appState = { ...app.state };
+        console.log(appState);
 
         this.add(appState, 'width', minAmountHor, maxAmountHor, amountStep).onFinishChange(() => {
             app.state = appState;
