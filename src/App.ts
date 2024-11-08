@@ -1,34 +1,22 @@
 import ls from 'localstorage-slim';
-import { Container } from '@pixi/display';
-import type { Sprite } from '@pixi/sprite';
-import { pixi } from './plugins/Pixi';
-import { addSpritesToViewPort, generateSprites } from 'utils/viewport';
-import { runAndMeasure } from 'utils/measure';
+import { pixi } from './main';
 import { config, defaultState } from './conf/config';
 import deepcopy from 'deepcopy';
+import { Container, Graphics } from 'pixi.js';
+import { runAndMeasure } from 'utils/measure';
+import { renderViewport } from 'utils/render';
 
 export class App extends Container {
-    private viewPort!: Container;
+    private viewPort = new Graphics();
     private isDragging = false;
     #state!: State;
 
     constructor() {
         super();
 
-        this.addViewPort();
         this.addEvents();
         this.restoreState();
         pixi.stage.addChild(this);
-    }
-
-    private addViewPort() {
-        if (this.viewPort) return;
-
-        this.viewPort = new Container();
-
-        this.viewPort.sortableChildren = false;
-        this.viewPort.cullable = true;
-
         this.addChild(this.viewPort);
     }
 
@@ -102,7 +90,7 @@ export class App extends Container {
         if (state) {
             this.state = state;
         } else {
-            this.resetState();
+            this.reset();
         }
     }
 
@@ -135,7 +123,10 @@ export class App extends Container {
         };
 
         if (changes && (changes.width || changes.height || changes.size || changes.dist)) {
-            this.generateSprites();
+            runAndMeasure(renderViewport, {
+                ...this.#state,
+                viewport: this.viewPort,
+            });
         }
 
         this.resize();
@@ -154,44 +145,18 @@ export class App extends Container {
         this.viewPort.scale.y = this.state.scale.y;
     }
 
-    private generateSprites() {
-        this.addViewPort();
-
-        this.unfreezeViewport();
-        this.viewPort.removeChildren();
-
-        const sprites: Sprite[] = runAndMeasure(generateSprites, this.state);
-
-        pixi.stop();
-
-        runAndMeasure(addSpritesToViewPort, {
-            sprites,
-            viewPort: this.viewPort,
-        });
-
-        pixi.start();
-
-        this.freezeViewport();
-    }
-
-    private freezeViewport() {
-        (this.viewPort as any).cacheAsBitmap = false;
-    }
-
-    private unfreezeViewport() {
-        (this.viewPort as any).cacheAsBitmap = true;
-    }
-
-    resetState() {
-        this.state = defaultState;
-
+    reset() {
         const { width, height } = pixi.getAppSize();
 
         this.state = {
             ...defaultState,
             pos: {
-                x: width / 2,
-                y: height / 2,
+                x: (width - this.viewPort.width) / 2,
+                y: (height - this.viewPort.height) / 2,
+            },
+            scale: {
+                x: 1,
+                y: 1,
             },
         };
     }

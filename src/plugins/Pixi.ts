@@ -1,21 +1,15 @@
-import '@pixi/events';
-import '@pixi/mixin-get-global-position';
-import { Application } from '@pixi/app';
-import { UPDATE_PRIORITY } from '@pixi/core';
+import { Application, UPDATE_PRIORITY, AbstractRenderer } from 'pixi.js';
 import { addStats } from 'pixi-stats';
 
-export class Pixi extends Application<HTMLCanvasElement> {
+export class Pixi extends Application {
     public static resolution: number;
 
-    constructor() {
-        Pixi.resolution = getResolution();
+    async initiate(): Promise<Pixi> {
+        AbstractRenderer.defaultOptions.resolution = getResolution();
 
-        super({
-            resolution: Pixi.resolution,
-            backgroundAlpha: 0,
-        });
+        await super.init();
 
-        document.body.appendChild(this.view);
+        document.body.appendChild(this.canvas);
 
         this.onResize();
         window.addEventListener('resize', this.onResize);
@@ -24,6 +18,8 @@ export class Pixi extends Application<HTMLCanvasElement> {
             (globalThis as any).__PIXI_APP__ = this;
             this.addStats();
         }
+
+        return this;
     }
 
     private addStats() {
@@ -35,13 +31,8 @@ export class Pixi extends Application<HTMLCanvasElement> {
     private onResize() {
         const { width, height } = this.getAppSize();
 
-        // Update canvas style dimensions and scroll window up to avoid issues on mobile resize
-        this.renderer.view.style.width = `${window.innerWidth}px`;
-        this.renderer.view.style.height = `${window.innerHeight}px`;
-        window.scrollTo(0, 0);
-
-        // Update renderer  and navigation screens dimensions
         this.renderer.resize(width, height);
+        window.scrollTo(0, 0);
     }
 
     getAppSize() {
@@ -73,5 +64,3 @@ export function getResolution(): number {
 
     return resolution;
 }
-
-export const pixi = new Pixi();

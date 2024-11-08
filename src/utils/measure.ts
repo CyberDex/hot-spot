@@ -1,4 +1,4 @@
-export function runAndMeasure(fn: any, params: any): any {
+export function runAndMeasure(fn: any, params?: any): any {
     const start = Date.now();
 
     const result = fn(params);

@@ -261,9 +261,6 @@
         "sort-imports": 0,
         "template-curly-spacing": [1, "never"],
         "yield-star-spacing": [1, "before"],
-
-        "no-restricted-imports": ["error", { "paths": ["pixi.js"] }],
-
         "no-mixed-operators": "off",
         "@typescript-eslint/consistent-type-imports": "error",
         "@typescript-eslint/parameter-properties": [
