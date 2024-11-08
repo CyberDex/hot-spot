@@ -16,7 +16,7 @@ export const defaultState: State = {
 };
 
 export const config = {
-    minScale: 0.05,
+    minScale: 0.01,
     maxScale: 10,
     defaultDist: 1,
     defaultSize: 5,

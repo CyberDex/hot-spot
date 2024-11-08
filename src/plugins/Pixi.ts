@@ -12,7 +12,7 @@ export class Pixi extends Application {
         document.body.appendChild(this.canvas);
 
         this.onResize();
-        window.addEventListener('resize', this.onResize);
+        window.addEventListener('resize', () => this.onResize());
 
         if (BUILD_TYPE === 'development') {
             (globalThis as any).__PIXI_APP__ = this;
