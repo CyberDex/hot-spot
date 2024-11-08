@@ -23,5 +23,8 @@ export default defineConfig(({ command, mode }) => {
                 conf: '/src/conf',
             },
         },
+        build: {
+            target: 'ES2022',
+        },
     };
 });
