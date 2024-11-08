@@ -122,7 +122,10 @@ export class App extends Container {
             ...changes,
         };
 
-        if (changes && (changes.width || changes.height || changes.size || changes.dist)) {
+        if (
+            changes &&
+            (changes.width || changes.height || changes.size || changes.dist || changes.intensity)
+        ) {
             runAndMeasure(renderViewport, {
                 ...this.#state,
                 viewport: this.viewPort,
@@ -146,19 +149,7 @@ export class App extends Container {
     }
 
     reset() {
-        const { width, height } = pixi.getAppSize();
-
-        this.state = {
-            ...defaultState,
-            pos: {
-                x: (width - this.viewPort.width) / 2,
-                y: (height - this.viewPort.height) / 2,
-            },
-            scale: {
-                x: 1,
-                y: 1,
-            },
-        };
+        this.state = defaultState;
     }
 }
 
@@ -167,6 +158,7 @@ export type State = {
     height: number;
     size: number;
     dist: number;
+    intensity: number;
     pos: {
         x: number;
         y: number;

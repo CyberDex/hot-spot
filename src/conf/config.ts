@@ -2,9 +2,10 @@ import { type State } from 'App';
 
 export const defaultState: State = {
     width: 100,
-    height: 100,
+    height: 50,
     size: 5,
     dist: 1,
+    intensity: 30,
     pos: {
         x: 0,
         y: 0,
