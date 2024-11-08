@@ -8,5 +8,5 @@ if (BUILD_TYPE === 'development') {
 }
 
 export const pixi = await new Pixi().initiate();
-export const app = new App();
+export const app = await new App().init();
 export const devTools = new DevTools();
