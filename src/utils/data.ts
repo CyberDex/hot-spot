@@ -9,6 +9,7 @@ export type Cell = {
     color: string;
     width: number;
     height: number;
+    intensity: number;
 };
 
 export function generateCells({ width, height, size, dist }: State): Cells {
@@ -22,9 +23,13 @@ export function generateCells({ width, height, size, dist }: State): Cells {
             const x = sizeWithDist * i;
             const y = sizeWithDist * j;
 
+            // random intensity from 0 to intensity
+            const randomIntensity = Math.floor(Math.random() * 50);
+
             cells.set(`${i}.${j}`, {
                 x,
                 y,
+                intensity: randomIntensity,
                 color: config.elementBaseColor,
                 width: size,
                 height: size,
@@ -52,25 +57,17 @@ export function updateCells({
             const x = sizeWithDist * i;
             const y = sizeWithDist * j;
 
+            // random intensity from 0 to intensity
+            const randomIntensity = Math.floor(Math.random() * 50);
+
             cells.set(`${i}.${j}`, {
                 x,
                 y,
-                color: getRandomColor(),
+                intensity: randomIntensity,
+                color: config.elementBaseColor,
                 width: size,
                 height: size,
             });
         }
     }
-}
-
-function getRandomColor(): string {
-    let randomColor;
-
-    do {
-        randomColor = Math.floor(Math.random() * 16777215)
-            .toString(16)
-            .padStart(6, '0');
-    } while (parseInt(randomColor, 16) < 0x333333); // Threshold to exclude dark colors
-
-    return `#${randomColor}`;
 }

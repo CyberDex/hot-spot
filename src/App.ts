@@ -5,7 +5,7 @@ import { Container, Graphics } from 'pixi.js';
 import { runAndMeasure } from 'utils/measure';
 import { renderViewport } from 'utils/render';
 import { get, set, del } from 'idb-keyval';
-import { generateCells, updateCells, type Cells } from 'utils/data';
+import { generateCells, type Cells } from 'utils/data';
 
 export class App extends Container {
     private viewPort = new Graphics();
@@ -189,8 +189,6 @@ export class App extends Container {
     }
 
     private updateViewport() {
-        console.info('!!! Updating viewport !!!');
-
         if (!this.cells) return;
 
         runAndMeasure(renderViewport, {
