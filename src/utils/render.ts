@@ -22,6 +22,7 @@ export function renderViewport({
         viewport.texture(
             Texture.WHITE,
             getColorWithRedIntensity(cell.color, finalIntensity),
+            // cell.color,
             cell.x,
             cell.y,
             cell.width,

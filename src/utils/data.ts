@@ -64,10 +64,22 @@ export function updateCells({
                 x,
                 y,
                 intensity: randomIntensity,
-                color: config.elementBaseColor,
+                color: getRandomColor(),
                 width: size,
                 height: size,
             });
         }
     }
+}
+
+function getRandomColor(): string {
+    let randomColor;
+
+    do {
+        randomColor = Math.floor(Math.random() * 16777215)
+            .toString(16)
+            .padStart(6, '0');
+    } while (parseInt(randomColor, 16) < 0x333333); // Threshold to exclude dark colors
+
+    return `#${randomColor}`;
 }
