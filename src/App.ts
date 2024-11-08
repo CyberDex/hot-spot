@@ -5,6 +5,7 @@ import deepcopy from 'deepcopy';
 import { Container, Graphics } from 'pixi.js';
 import { runAndMeasure } from 'utils/measure';
 import { renderViewport } from 'utils/render';
+import { generateData, type Data, type DataSetup } from 'utils/data';
 
 export class App extends Container {
     private viewPort = new Graphics();
@@ -117,12 +118,22 @@ export class App extends Container {
 
         if (changesAmount === 0) return;
 
+        if (this.needToRender(changes)) {
+            changes.data = runAndMeasure(generateData, {
+                width: changes.width,
+                height: changes.height,
+                minSize: changes.minSize,
+                maxSize: changes.maxSize,
+                dist: changes.dist,
+            });
+        }
+
         this.#state = {
             ...this.#state,
             ...changes,
         };
 
-        if (changes && (changes.width || changes.height || changes.size || changes.dist)) {
+        if (this.needToRender(changes)) {
             runAndMeasure(renderViewport, {
                 ...this.#state,
                 viewport: this.viewPort,
@@ -133,6 +144,18 @@ export class App extends Container {
         this.saveState();
     }
 
+    private needToRender(changes: any): boolean {
+        return (
+            this.state?.data?.size === 0 ||
+            changes.width !== undefined ||
+            changes.height !== undefined ||
+            changes.minSize !== undefined ||
+            changes.maxSize !== undefined ||
+            changes.dist !== undefined
+        );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/adjacent-overload-signatures
     get state(): State {
         return this.#state;
     }
@@ -146,27 +169,11 @@ export class App extends Container {
     }
 
     reset() {
-        const { width, height } = pixi.getAppSize();
-
-        this.state = {
-            ...defaultState,
-            pos: {
-                x: (width - this.viewPort.width) / 2,
-                y: (height - this.viewPort.height) / 2,
-            },
-            scale: {
-                x: 1,
-                y: 1,
-            },
-        };
+        this.state = defaultState;
     }
 }
 
-export type State = {
-    width: number;
-    height: number;
-    size: number;
-    dist: number;
+export type State = DataSetup & {
     pos: {
         x: number;
         y: number;
@@ -175,5 +182,6 @@ export type State = {
         x: number;
         y: number;
     };
+    data: Data;
 };
 export type StateField = keyof State;

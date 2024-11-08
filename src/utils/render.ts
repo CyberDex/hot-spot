@@ -1,31 +1,32 @@
 import { type State } from 'App';
 import { type Graphics, Texture } from 'pixi.js';
 
-export function renderViewport({
-    viewport,
-    width,
-    height,
-    size,
-    dist,
-}: State & { viewport: Graphics }) {
+export function renderViewport({ viewport, width, height, data }: State & { viewport: Graphics }) {
+    if (!data) {
+        console.error('No data provided');
+
+        return;
+    }
+
     console.info(
         `Rendering viewport ${width}x${height}, ${(width * height).toLocaleString()} cells`,
     );
 
     viewport.clear();
 
-    for (let i = 0; i < width; i++) {
-        for (let j = 0; j < height; j++) {
-            const sizeWithDist = size + dist;
-            const x = sizeWithDist * i;
-            const y = sizeWithDist * j;
-
-            viewport.texture(Texture.WHITE, getRandomColor(), x, y, size, size);
-        }
-    }
+    data.forEach((cellData) => {
+        viewport.texture(
+            Texture.WHITE,
+            cellData.color,
+            cellData.x,
+            cellData.y,
+            cellData.width,
+            cellData.height,
+        );
+    });
 }
 
-function getRandomColor(): string {
+export function getRandomColor(): string {
     let randomColor;
 
     do {
@@ -35,4 +36,8 @@ function getRandomColor(): string {
     } while (parseInt(randomColor, 16) < 0x333333); // Threshold to exclude dark colors
 
     return `#${randomColor}`;
+}
+
+export function getRandomSize(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min) + min);
 }

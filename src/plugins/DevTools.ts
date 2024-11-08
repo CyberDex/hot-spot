@@ -1,4 +1,4 @@
-import { GUI } from 'dat.gui';
+import { GUI, type GUIController } from 'dat.gui';
 import { app } from '../main';
 import { config } from 'conf/config';
 
@@ -34,22 +34,51 @@ export class DevTools extends GUI {
             maxDist,
         } = config;
 
-        const appState = { ...app.state };
+        const controllers: GUIController[] = [];
 
-        this.add(appState, 'width', minAmountHor, maxAmountHor, amountStep).onFinishChange(() => {
+        const appState = app.state;
+
+        controllers[1] = this.add(
+            appState,
+            'width',
+            minAmountHor,
+            maxAmountHor,
+            amountStep,
+        ).onFinishChange(() => {
             app.state = appState;
         });
 
-        this.add(appState, 'height', minAmountVer, maxAmountVer, amountStep).onFinishChange(() => {
+        controllers[2] = this.add(
+            appState,
+            'height',
+            minAmountVer,
+            maxAmountVer,
+            amountStep,
+        ).onFinishChange(() => {
             app.state = appState;
         });
 
-        this.add(appState, 'size', 1, maxSize).onFinishChange(() => {
+        controllers[3] = this.add(appState, 'minSize', 1, maxSize).onFinishChange(() => {
             app.state = appState;
         });
 
-        this.add(appState, 'dist', 0, maxDist).onFinishChange(() => {
+        controllers[3] = this.add(appState, 'maxSize', 1, maxSize).onFinishChange(() => {
             app.state = appState;
         });
+
+        controllers[4] = this.add(appState, 'dist', 0, maxDist).onFinishChange(() => {
+            app.state = appState;
+        });
+
+        controllers[5] = this.add(
+            {
+                Reset: () => {
+                    app.reset();
+                    controllers.forEach((controller) => this.remove(controller));
+                    this.addStateControls();
+                },
+            },
+            'Reset',
+        );
     }
 }

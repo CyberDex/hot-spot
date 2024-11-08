@@ -1,9 +1,10 @@
 import { type State } from 'App';
 
 export const defaultState: State = {
-    width: 100,
-    height: 100,
-    size: 5,
+    width: 10,
+    height: 10,
+    minSize: 5,
+    maxSize: 5,
     dist: 1,
     pos: {
         x: 0,
@@ -13,6 +14,7 @@ export const defaultState: State = {
         x: 1,
         y: 1,
     },
+    data: new Map(),
 };
 
 export const config = {
