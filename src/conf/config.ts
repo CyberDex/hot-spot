@@ -1,14 +1,14 @@
 import { type State } from 'App';
 
 export const defaultState: State = {
-    width: 100,
+    width: 50,
     height: 50,
     size: 5,
     dist: 1,
-    intensity: 30,
+    intensity: 0,
     pos: {
-        x: 0,
-        y: 0,
+        x: 1,
+        y: 1,
     },
     scale: {
         x: 1,
@@ -29,4 +29,5 @@ export const config = {
     maxSize: 100,
     maxDist: 100,
     scaleStep: 0.1,
+    elementBaseColor: '#565656',
 };

@@ -1,23 +1,26 @@
-import ls from 'localstorage-slim';
 import { pixi } from './main';
 import { config, defaultState } from './conf/config';
 import deepcopy from 'deepcopy';
 import { Container, Graphics } from 'pixi.js';
 import { runAndMeasure } from 'utils/measure';
 import { renderViewport } from 'utils/render';
+import { get, set, del } from 'idb-keyval';
+import { generateCells, type Cells } from 'utils/data';
 
 export class App extends Container {
     private viewPort = new Graphics();
     private isDragging = false;
     #state!: State;
+    private cells!: Cells;
 
-    constructor() {
-        super();
+    async init(): Promise<App> {
+        await this.restoreState();
 
         this.addEvents();
-        this.restoreState();
         pixi.stage.addChild(this);
         this.addChild(this.viewPort);
+
+        return this;
     }
 
     private addEvents() {
@@ -25,11 +28,11 @@ export class App extends Container {
             capture: true,
         };
 
-        pixi.view.addEventListener('wheel', (event) => this.onZoom(event), options);
-        pixi.view.addEventListener('pointerdown', (event) => this.onClick(event), options);
-        pixi.view.addEventListener('pointerup', () => this.onDragEnd(), options);
-        pixi.view.addEventListener('pointerupoutside', () => this.onDragEnd(), options);
-        pixi.view.addEventListener('pointermove', (event) => this.onDrag(event), options);
+        pixi.canvas.addEventListener('wheel', (event) => this.onZoom(event), options);
+        pixi.canvas.addEventListener('pointerdown', (event) => this.onClick(event), options);
+        pixi.canvas.addEventListener('pointerup', () => this.onDragEnd(), options);
+        pixi.canvas.addEventListener('pointerupoutside', () => this.onDragEnd(), options);
+        pixi.canvas.addEventListener('pointermove', (event) => this.onDrag(event), options);
     }
 
     private onZoom(event: WheelEvent) {
@@ -80,17 +83,33 @@ export class App extends Container {
         };
     }
 
-    private saveState() {
-        ls.set(`${APP_NAME}-state`, this.state);
+    private async saveState() {
+        await set(`state`, this.state);
+        await set('cells', this.cells);
     }
 
-    private restoreState() {
-        const state = ls.get(`${APP_NAME}-state`) as State;
+    private async restoreState() {
+        const state = await get('state');
+        const cells = await get('cells');
 
         if (state) {
+            console.warn('state', state);
             this.state = state;
         } else {
-            this.reset();
+            await this.resetState();
+        }
+
+        if (cells) {
+            console.warn('cells', cells);
+            this.cells = cells;
+
+            runAndMeasure(renderViewport, {
+                cells: this.cells,
+                intensity: this.state.intensity,
+                viewport: this.viewPort,
+            });
+        } else {
+            await this.resetCells();
         }
     }
 
@@ -122,14 +141,12 @@ export class App extends Container {
             ...changes,
         };
 
-        if (
-            changes &&
-            (changes.width || changes.height || changes.size || changes.dist || changes.intensity)
-        ) {
-            runAndMeasure(renderViewport, {
-                ...this.#state,
-                viewport: this.viewPort,
-            });
+        if (changes && (changes.width || changes.height || changes.size || changes.dist)) {
+            this.resetCells();
+        }
+
+        if (changes && changes.intensity) {
+            this.updateViewport();
         }
 
         this.resize();
@@ -148,8 +165,37 @@ export class App extends Container {
         this.viewPort.scale.y = this.state.scale.y;
     }
 
-    reset() {
+    async resetState() {
+        await del('state');
         this.state = defaultState;
+
+        console.error('resetState', this.state);
+    }
+
+    async resetCells() {
+        await del('cells');
+
+        this.cells = runAndMeasure(generateCells, this.state);
+
+        await this.saveState();
+
+        console.error('resetCells', this.cells);
+
+        runAndMeasure(renderViewport, {
+            cells: this.cells,
+            intensity: this.state.intensity,
+            viewport: this.viewPort,
+        });
+    }
+
+    private updateViewport() {
+        if (!this.cells) return;
+
+        runAndMeasure(renderViewport, {
+            cells: this.cells,
+            intensity: this.state.intensity,
+            viewport: this.viewPort,
+        });
     }
 }
 

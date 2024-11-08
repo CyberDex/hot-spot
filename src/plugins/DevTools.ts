@@ -65,14 +65,15 @@ export class DevTools extends GUI {
             app.state = appState;
         });
 
-        controllers[4] = this.add(appState, 'intensity', 0, maxDist).onChange(() => {
+        controllers[5] = this.add(appState, 'intensity', 0, maxDist).onChange(() => {
             app.state = appState;
         });
 
-        controllers[5] = this.add(
+        controllers[6] = this.add(
             {
-                Reset: () => {
-                    app.reset();
+                Reset: async () => {
+                    await app.resetState();
+                    await app.resetCells();
                     controllers.forEach((controller) => this.remove(controller));
                     this.addStateControls();
                 },

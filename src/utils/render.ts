@@ -1,73 +1,55 @@
-import { type State } from 'App';
 import { type Graphics, Texture } from 'pixi.js';
+import { type Cells } from 'utils/data';
 
 export function renderViewport({
+    cells,
     viewport,
-    width,
-    height,
-    size,
-    dist,
     intensity,
-}: State & { viewport: Graphics }) {
-    console.info(
-        `Rendering viewport ${width}x${height}, ${(width * height).toLocaleString()} cells`,
-    );
+}: {
+    cells: Cells;
+    intensity: number;
+    viewport: Graphics;
+}) {
+    console.info(`Rendering viewport with ${cells.size.toLocaleString()} cells`, {
+        intensity,
+    });
 
     viewport.clear();
 
-    const colors: string[] = generateColors(`#565656`, 200, intensity);
+    for (const cell of cells.values()) {
+        const finalIntensity = cell.intensity + (100 - cell.intensity) * (intensity / 100);
 
-    for (let i = 0; i < width; i++) {
-        for (let j = 0; j < height; j++) {
-            const sizeWithDist = size + dist;
-            const x = sizeWithDist * i;
-            const y = sizeWithDist * j;
-
-            viewport.texture(Texture.WHITE, getRandomColor(colors), x, y, size, size);
-        }
+        viewport.texture(
+            Texture.WHITE,
+            getColorWithRedIntensity(cell.color, finalIntensity),
+            // cell.color,
+            cell.x,
+            cell.y,
+            cell.width,
+            cell.height,
+        );
     }
 }
 
-function getRandomColor(colors: string[]): string {
-    return colors[Math.floor(Math.random() * colors.length)];
-}
+export function getColorWithRedIntensity(baseColor: string, intensity: number): string {
+    // Clamp intensity between 0 and 100
+    intensity = Math.max(0, Math.min(100, intensity));
 
-function generateColors(baseColor: string, count: number, maxIntensity: number): string[] {
-    const colors: string[] = [];
+    // Calculate intensity factor as a scale from 0 to 255
+    const intensityFactor = Math.floor((intensity / 100) * 255);
 
-    // Ensure maxIntensity is between 1 and 100
-    maxIntensity = Math.max(1, Math.min(100, maxIntensity));
+    // Parse the base color assuming hex format, e.g., "#RRGGBB"
+    const r = parseInt(baseColor.slice(1, 3), 16);
+    const g = parseInt(baseColor.slice(3, 5), 16);
+    const b = parseInt(baseColor.slice(5, 7), 16);
 
-    // Convert maxIntensity from 1-100 range to 0-255 scale
-    const maxRedValue = Math.floor((maxIntensity / 100) * 255);
+    // Blend red channel towards max intensity
+    const newR = Math.min(255, r + intensityFactor);
+    const newG = Math.floor(g * (1 - intensityFactor / 255));
+    const newB = Math.floor(b * (1 - intensityFactor / 255));
 
-    // Helper to blend towards red
-    function blendTowardsRed(baseColor: string, redIntensity: number): string {
-        // Parse the base color assuming hex format, e.g., "#RRGGBB"
-        const r = parseInt(baseColor.slice(1, 3), 16);
-        const g = parseInt(baseColor.slice(3, 5), 16);
-        const b = parseInt(baseColor.slice(5, 7), 16);
-
-        // Blend red channel towards the max intensity red value
-        const newR = Math.min(255, r + redIntensity);
-        const newG = Math.floor(g * (1 - redIntensity / 255));
-        const newB = Math.floor(b * (1 - redIntensity / 255));
-
-        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB
-            .toString(16)
-            .padStart(2, '0')}`;
-    }
-
-    for (let i = 0; i < count; i++) {
-        if (i < count / 2) {
-            // 50% of colors are the base color
-            colors.push(baseColor);
-        } else {
-            // The other 50% are random intensities towards red
-            const randomRedIntensity = Math.floor(Math.random() * maxRedValue);
-            colors.push(blendTowardsRed(baseColor, randomRedIntensity));
-        }
-    }
-
-    return colors;
+    // Return the blended color in hex format
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB
+        .toString(16)
+        .padStart(2, '0')}`;
 }
