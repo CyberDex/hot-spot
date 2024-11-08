@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "baseUrl": "./src",
-        "target": "ESNext",
+        "target": "ES2022",
         "useDefineForClassFields": true,
         "module": "ESNext",
         "lib": ["ESNext", "DOM"],
