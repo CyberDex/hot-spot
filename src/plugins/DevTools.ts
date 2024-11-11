@@ -46,7 +46,7 @@ class DevTools extends GUI {
             maxAmountHor,
             amountStep,
         ).onFinishChange(() => {
-            app.state = appState;
+            app.setState(appState);
         });
 
         controllers[2] = this.add(
@@ -56,19 +56,19 @@ class DevTools extends GUI {
             maxAmountVer,
             amountStep,
         ).onFinishChange(() => {
-            app.state = appState;
+            app.setState(appState);
         });
 
         controllers[3] = this.add(appState, 'size', 1, maxSize).onFinishChange(() => {
-            app.state = appState;
+            app.setState(appState);
         });
 
         controllers[4] = this.add(appState, 'dist', 0, maxDist).onFinishChange(() => {
-            app.state = appState;
+            app.setState(appState);
         });
 
         controllers[5] = this.add(appState, 'intensity', 0, maxDist).onChange(() => {
-            app.state = appState;
+            app.setState(appState);
         });
 
         controllers[6] = this.add(

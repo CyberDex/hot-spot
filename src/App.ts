@@ -49,12 +49,12 @@ class App extends Container {
         this.viewPort.scale.x = scale;
         this.viewPort.scale.y = scale;
 
-        this.state = {
+        this.setState({
             scale: {
                 x: scale,
                 y: scale,
             },
-        };
+        });
     }
 
     private onClick(event: PointerEvent) {
@@ -75,12 +75,12 @@ class App extends Container {
 
         this.isDragging = false;
 
-        this.state = {
+        this.setState({
             pos: {
                 x: this.viewPort.x,
                 y: this.viewPort.y,
             },
-        };
+        });
     }
 
     private async saveState() {
@@ -94,7 +94,7 @@ class App extends Container {
 
         if (state) {
             console.warn('state', state);
-            this.state = state;
+            this.setState(state, true);
         } else {
             await this.resetState();
         }
@@ -113,7 +113,7 @@ class App extends Container {
         }
     }
 
-    set state(change: Partial<State>) {
+    async setState(change: Partial<State>, isInitial = false) {
         if (!change) return;
 
         const stateData: any = this.#state && deepcopy(this.#state);
@@ -141,8 +141,12 @@ class App extends Container {
             ...changes,
         };
 
-        if (changes && (changes.width || changes.height || changes.size || changes.dist)) {
-            this.resetCells();
+        if (
+            !isInitial &&
+            changes &&
+            (changes.width || changes.height || changes.size || changes.dist)
+        ) {
+            await this.resetCells();
         }
 
         if (changes && changes.intensity) {
@@ -167,7 +171,7 @@ class App extends Container {
 
     async resetState() {
         await del('state');
-        this.state = defaultState;
+        this.setState(defaultState);
 
         console.error('resetState', this.state);
     }
