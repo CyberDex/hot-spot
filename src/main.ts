@@ -1,12 +1,14 @@
-import { DevTools } from './plugins/DevTools';
-import { App } from './App';
-import { Pixi } from 'plugins/Pixi';
+import { pixi } from 'plugins/Pixi';
+import { app } from './App';
+import { devTools } from './plugins/DevTools';
 
 if (BUILD_TYPE === 'development') {
     // eslint-disable-next-line no-console
     console.info(`🐳 ${APP_NAME} | ${APP_VERSION} | ${BUILD_TYPE}`);
 }
 
-export const pixi = await new Pixi().initiate();
-export const app = await new App().init();
-export const devTools = new DevTools();
+(async () => {
+    await pixi.initiate();
+    await app.init();
+    await devTools.init();
+})();

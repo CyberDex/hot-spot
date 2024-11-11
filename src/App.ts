@@ -1,4 +1,4 @@
-import { pixi } from './main';
+import { pixi } from './plugins/Pixi';
 import { config, defaultState } from './conf/config';
 import deepcopy from 'deepcopy';
 import { Container, Graphics } from 'pixi.js';
@@ -7,7 +7,7 @@ import { renderViewport } from 'utils/render';
 import { get, set, del } from 'idb-keyval';
 import { generateCells, type Cells } from 'utils/data';
 
-export class App extends Container {
+class App extends Container {
     private viewPort = new Graphics();
     private isDragging = false;
     #state!: State;
@@ -215,3 +215,5 @@ export type State = {
     };
 };
 export type StateField = keyof State;
+
+export const app = new App();

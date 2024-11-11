@@ -1,8 +1,8 @@
 import { GUI, type GUIController } from 'dat.gui';
-import { app } from '../main';
+import { app } from '../App';
 import { config } from 'conf/config';
 
-export class DevTools extends GUI {
+class DevTools extends GUI {
     constructor() {
         super({
             name: 'Dev Tools',
@@ -10,7 +10,9 @@ export class DevTools extends GUI {
             closeOnTop: true,
             autoPlace: false,
         });
+    }
 
+    init() {
         document.body.appendChild(this.domElement);
 
         this.applyStyles();
@@ -82,3 +84,5 @@ export class DevTools extends GUI {
         );
     }
 }
+
+export const devTools = new DevTools();

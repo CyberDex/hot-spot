@@ -1,7 +1,7 @@
 import { Application, UPDATE_PRIORITY, AbstractRenderer } from 'pixi.js';
 import { addStats } from 'pixi-stats';
 
-export class Pixi extends Application {
+class Pixi extends Application {
     public static resolution: number;
 
     async initiate(): Promise<Pixi> {
@@ -54,6 +54,8 @@ export class Pixi extends Application {
         return { width, height };
     }
 }
+
+export const pixi = new Pixi();
 
 export function getResolution(): number {
     let resolution = Math.max(window.devicePixelRatio, 2);
